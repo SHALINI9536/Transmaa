@@ -1,17 +1,2 @@
-import React from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-
-export const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { currentUser, isAdmin } = useAuth();
-
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requireAdmin && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
-};
+import React from 'react';import {Navigate,useLocation} from 'react-router-dom';import {useAuth} from '../context/AuthContext';
+export const ProtectedRoute=({children,requireAdmin=false})=>{const {currentUser,isAdmin,userProfile,activeMode}=useAuth();const location=useLocation();if(!currentUser)return <Navigate to="/login" replace state={{from:location.pathname}}/>;if(requireAdmin&&!isAdmin)return <Navigate to="/dashboard" replace/>;if(location.pathname.startsWith('/driver/')&&location.pathname!=='/driver/register'&&userProfile?.driverStatus!=='approved')return <Navigate to="/driver/register" replace/>;if(location.pathname.startsWith('/driver/')&&location.pathname!=='/driver/register'&&activeMode!=='driver')return <Navigate to="/dashboard" replace/>;return children;};

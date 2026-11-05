@@ -1,71 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth, db, ref, get, set } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
-
-const AuthContext = createContext();
-
-export const useAuth = () => useContext(AuthContext);
-
-export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        try {
-          // 1. Check Custom Claims or Read-Only '/admins/{uid}' Node (Never self-assigned!)
-          const tokenResult = await user.getIdTokenResult();
-          const claimAdmin = !!tokenResult.claims.admin;
-          
-          const adminSnap = await get(ref(db, `admins/${user.uid}`));
-          const dbAdmin = adminSnap.exists() && adminSnap.val() === true;
-          
-          setIsAdmin(claimAdmin || dbAdmin);
-
-          // 2. Fetch or initialize user profile (strictly restricted to customer/driver)
-          const userRef = ref(db, `users/${user.uid}`);
-          const userSnap = await get(userRef);
-
-          if (userSnap.exists()) {
-            setUserProfile(userSnap.val());
-          } else {
-            const defaultProfile = {
-              uid: user.uid,
-              name: user.displayName || user.phoneNumber || user.email?.split("@")[0] || "Transmaa User",
-              email: user.email || "",
-              phone: user.phoneNumber || "",
-              role: "customer", // Normal registration never grants admin
-              createdAt: new Date().toISOString()
-            };
-            await set(userRef, defaultProfile);
-            setUserProfile(defaultProfile);
-          }
-        } catch (err) {
-          console.error("Error loading profile:", err);
-        }
-      } else {
-        setUserProfile(null);
-        setIsAdmin(false);
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const refreshProfile = async () => {
-    if (!currentUser) return;
-    const snap = await get(ref(db, `users/${currentUser.uid}`));
-    if (snap.exists()) setUserProfile(snap.val());
-  };
-
-  return (
-    <AuthContext.Provider value={{ currentUser, userProfile, isAdmin, loading, refreshProfile }}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
-};
+import React,{createContext,useContext,useEffect,useState} from 'react';
+import {auth,db,ref,get,set} from '../firebase';
+import {onAuthStateChanged} from 'firebase/auth';
+const C=createContext(null);export const useAuth=()=>useContext(C);
+export function AuthProvider({children}){const [currentUser,setCurrentUser]=useState(null),[userProfile,setUserProfile]=useState(null),[isAdmin,setIsAdmin]=useState(false),[activeMode,setActiveMode]=useState('customer'),[loading,setLoading]=useState(true);
+useEffect(()=>onAuthStateChanged(auth,async user=>{setCurrentUser(user);if(!user){setUserProfile(null);setIsAdmin(false);setLoading(false);return;}try{const [a,p]=await Promise.all([get(ref(db,`admins/${user.uid}`)),get(ref(db,`users/${user.uid}`))]);const admin=a.exists()&&a.val()===true;setIsAdmin(admin);let profile=p.exists()?p.val():{name:user.displayName||user.email?.split('@')[0]||'Transmaa User',email:user.email||'',phone:'',role:'customer',driverStatus:'not_registered',createdAt:new Date().toISOString()};if(!p.exists())await set(ref(db,`users/${user.uid}`),profile);setUserProfile(profile);const saved=localStorage.getItem(`transmaa-mode-${user.uid}`);setActiveMode(admin?'admin':saved==='driver'&&profile.driverStatus==='approved'?'driver':'customer');}catch(e){console.error(e)}finally{setLoading(false)}}),[]);
+const refreshProfile=async()=>{if(!currentUser)return;const s=await get(ref(db,`users/${currentUser.uid}`));if(s.exists())setUserProfile(s.val())};
+const switchMode=mode=>{if(mode==='driver'&&userProfile?.driverStatus!=='approved')throw new Error('Driver mode admin approval ke baad hi activate hoga.');if(!['customer','driver'].includes(mode))return;setActiveMode(mode);localStorage.setItem(`transmaa-mode-${currentUser.uid}`,mode)};
+return <C.Provider value={{currentUser,userProfile,isAdmin,activeMode,switchMode,loading,refreshProfile}}>{!loading&&children}</C.Provider>}

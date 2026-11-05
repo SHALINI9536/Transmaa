@@ -35,6 +35,12 @@ export default function AdminPage() {
     await update(ref(db, `bookings/${id}`), { status });
   };
 
+  const pendingDrivers = users.filter(u => u.driverStatus === "pending");
+  const reviewDriver = async (driver, status) => {
+    await update(ref(db, `users/${driver.id}`), { driverStatus: status });
+    await update(ref(db, `drivers/${driver.id}`), { status });
+  };
+
   const totalRevenue = bookings.reduce((acc, b) => acc + Number(b.fare || 0), 0);
 
   return (
@@ -80,6 +86,11 @@ export default function AdminPage() {
             <p className="text-2xl font-bold">{users.length}</p>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-200"><h2 className="font-bold text-slate-900">Driver verification queue</h2><p className="text-xs text-slate-500 mt-1">Approve a driver's existing account to unlock Driver Mode.</p></div>
+        {pendingDrivers.length === 0 ? <p className="p-6 text-sm text-slate-500">No pending driver applications.</p> : <div className="divide-y">{pendingDrivers.map(d => <div key={d.id} className="p-5 flex flex-wrap items-center justify-between gap-4"><div><b>{d.driverApplication?.name || d.name}</b><p className="text-xs text-slate-500 mt-1">{d.driverApplication?.phone} · Licence: {d.driverApplication?.license} · Vehicle: {d.driverApplication?.vehicle} · {d.driverApplication?.registration}</p></div><div className="flex gap-2"><button onClick={() => reviewDriver(d, "approved")} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold">Approve</button><button onClick={() => reviewDriver(d, "rejected")} className="px-3 py-2 rounded-lg bg-rose-50 text-rose-700 text-xs font-bold">Reject</button></div></div>)}</div>}
       </div>
 
       {/* All Bookings Table */}

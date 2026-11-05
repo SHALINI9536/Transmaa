@@ -46,13 +46,14 @@ export default function LoginPage() {
   const syncUserProfile = async (user, customName = "", chosenRole = "customer", isNewAccount = false) => {
     const userRef = ref(db, `users/${user.uid}`);
     const snap = await get(userRef);
-    const safeRole = chosenRole === "driver" ? "driver" : "customer";
+    const safeRole = "customer";
     const profile = {
       uid: user.uid,
       name: customName || user.displayName || user.email?.split("@")[0] || "Transmaa User",
       email: user.email || "",
       phone: user.phoneNumber || "",
       role: safeRole,
+      driverStatus: "not_registered",
       createdAt: new Date().toISOString()
     };
 
@@ -167,7 +168,7 @@ export default function LoginPage() {
 
           <div className="mb-5 bg-slate-50 p-3 rounded-xl border border-slate-200">
             <label className="block text-xs font-semibold text-slate-600 mb-2">
-              Account Type (For New Users):
+              New accounts start in Customer mode:
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -175,14 +176,14 @@ export default function LoginPage() {
                 onClick={() => setSelectedRole("customer")}
                 className={`py-2 px-3 rounded-lg text-xs font-semibold border transition ${selectedRole === "customer" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"}`}
               >
-                📦 Customer (Book Trucks)
+                📦 Customer account
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedRole("driver")}
                 className={`py-2 px-3 rounded-lg text-xs font-semibold border transition ${selectedRole === "driver" ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"}`}
               >
-                🚛 Fleet Driver / Partner
+                🚛 Apply as driver later
               </button>
             </div>
           </div>
